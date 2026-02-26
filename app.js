@@ -64,10 +64,9 @@ async function fetchPosts() {
 
         // Process paths and sort by date descending
         posts = posts.map(p => {
-            let niceTitle = p.title.replace('.md', '').split('_').join(' ');
             return {
                 ...p,
-                displayTitle: niceTitle
+                displayTitle: p.category || '데일리 뉴스'
             };
         }).sort((a, b) => b.date.localeCompare(a.date));
 
@@ -147,8 +146,8 @@ function renderSidebar() {
         a.dataset.path = post.path;
 
         a.innerHTML = `
-      <div class="post-title" style="font-size:0.9rem">${post.displayTitle}</div>
-      <div class="post-date" style="font-size:0.75rem">${post.category || '기타'} · ${post.date}</div>
+      <div class="post-title" style="font-size:0.95rem; font-weight:600;">${post.displayTitle}</div>
+      <div class="post-date" style="font-size:0.75rem">${post.date}</div>
     `;
 
         postListContainer.appendChild(a);
@@ -171,7 +170,7 @@ function renderDashboard() {
                 <span class="card-category">${post.category || '미분류'}</span>
                 <span class="card-date">${post.date}</span>
             </div>
-            <div class="card-title">${post.displayTitle}</div>
+            <div class="card-title">${post.displayTitle} 주요 뉴스</div>
             <div class="card-summary">${post.summary ? marked.parseInline(post.summary) : '내용이 없습니다.'}</div>
         `;
         dashboardCards.appendChild(card);
