@@ -1,0 +1,26 @@
+---
+layout: null
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Daily News Blog</title>
+    <description>Daily tech and financial news curated for you.</description>
+    <link>{{ site.url }}{{ site.baseurl }}/</link>
+    <atom:link href="{{ site.url }}{{ site.baseurl }}/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>{{ site.time | date_to_rfc822 }}</pubDate>
+    <lastBuildDate>{{ site.time | date_to_rfc822 }}</lastBuildDate>
+    <generator>Jekyll v{{ jekyll.version }}</generator>
+    
+    {% assign md_files = site.static_files | where_exp: "item", "item.extname == '.md'" | where_exp: "item", "item.path contains '/md/'" | sort: "modified_time" | reverse %}
+    {% for post in md_files limit:10 %}
+      <item>
+        <title>{{ post.basename | escape }}</title>
+        <description>Daily News for {{ post.basename | escape }}</description>
+        <pubDate>{{ post.modified_time | date_to_rfc822 }}</pubDate>
+        <link>{{ site.url }}{{ site.baseurl }}/#{{ post.path | escape }}</link>
+        <guid isPermaLink="true">{{ site.url }}{{ site.baseurl }}/#{{ post.path | escape }}</guid>
+      </item>
+    {% endfor %}
+  </channel>
+</rss>

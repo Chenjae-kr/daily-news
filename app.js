@@ -11,11 +11,24 @@ const overlay = document.getElementById('overlay');
 const activeCategoryDisplay = document.getElementById('active-category');
 const searchInput = document.getElementById('search-input');
 const tocList = document.getElementById('toc-list');
+const progressBar = document.getElementById('progress-bar');
+const goToTopBtn = document.getElementById('go-to-top');
+const mainContent = document.getElementById('main-content');
+
+// Calendar Elements
+const calMonthYear = document.getElementById('cal-month-year');
+const calGrid = document.getElementById('calendar-grid');
+const calPrev = document.getElementById('cal-prev');
+const calNext = document.getElementById('cal-next');
 
 // State
 let posts = [];
 let filteredPosts = [];
 let currentPostPath = null;
+let currentSearchQuery = '';
+
+// Calendar State
+let currentCalDate = new Date();
 
 // Initialize
 async function init() {
@@ -65,6 +78,7 @@ async function fetchPosts() {
 
         filteredPosts = [...posts];
         renderSidebar();
+        renderCalendar();
     } catch (err) {
         console.error('Error fetching posts:', err);
         postListContainer.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-secondary)">글 목록을 불러오지 못했습니다.</div>';
@@ -73,13 +87,23 @@ async function fetchPosts() {
 
 // Search Filter functionality
 function handleSearch(e) {
-    const query = e.target.value.toLowerCase();
-    filteredPosts = posts.filter(post =>
-        post.displayTitle.toLowerCase().includes(query) ||
-        post.date.toLowerCase().includes(query) ||
-        post.title.toLowerCase().includes(query)
-    );
+    currentSearchQuery = e.target.value.toLowerCase().trim();
+    if (!currentSearchQuery) {
+        filteredPosts = [...posts];
+    } else {
+        filteredPosts = posts.filter(post =>
+            post.displayTitle.toLowerCase().includes(currentSearchQuery) ||
+            post.date.toLowerCase().includes(currentSearchQuery) ||
+            post.title.toLowerCase().includes(currentSearchQuery)
+        );
+    }
     renderSidebar();
+
+    // Re-render markdown if we are searching to highlight terms
+    if (currentPostPath && markdownContainer.innerHTML.trim() !== '') {
+        // Debounce or just call it directly for simplicity
+        loadMarkdown(currentPostPath);
+    }
 }
 
 // Render Sidebar List
@@ -144,7 +168,14 @@ async function loadMarkdown(path) {
         if (!res.ok) throw new Error('Markdown not found');
         const mdText = await res.text();
 
-        const html = marked.parse(mdText);
+        let html = marked.parse(mdText);
+
+        // Highlight keywords if search is active
+        if (currentSearchQuery.length > 1) {
+            // Very simple highlighting that avoids inside HTML tags
+            const regex = new RegExp(`(?![^<]+>)((${currentSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}))`, 'gi');
+            html = html.replace(regex, '<span class="highlight">$1</span>');
+        }
 
         // Calculate Read Time
         const wordCount = mdText.replace(/[#*`\n]/g, ' ').split(/\s+/).filter(word => word.length > 0).length;
@@ -185,8 +216,10 @@ async function loadMarkdown(path) {
 
         hideLoader();
 
-        // Scroll to top of content
-        document.getElementById('main-content').scrollTop = 0;
+        // Reset scroll and progress
+        mainContent.scrollTop = 0;
+        updateProgressBar();
+        toggleGoToTopButton();
 
     } catch (err) {
         console.error('Error loading markdown:', err);
@@ -231,6 +264,99 @@ function shareCurrentPost() {
         console.error('Failed to copy: ', err);
         alert('주소 복사에 실패했습니다.');
     });
+}
+
+// Progress Bar Logic
+function updateProgressBar() {
+    if (!mainContent) return;
+    const scrollHeight = mainContent.scrollHeight - mainContent.clientHeight;
+    if (scrollHeight <= 0) {
+        if (progressBar) progressBar.style.width = '0%';
+        return;
+    }
+    const progress = (mainContent.scrollTop / scrollHeight) * 100;
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
+}
+
+// Go to Top Logic
+function toggleGoToTopButton() {
+    if (!goToTopBtn || !mainContent) return;
+    if (mainContent.scrollTop > 300) {
+        goToTopBtn.classList.add('visible');
+    } else {
+        goToTopBtn.classList.remove('visible');
+    }
+}
+
+function scrollToTop() {
+    if (mainContent) {
+        mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// Calendar Logic
+function renderCalendar() {
+    if (!calGrid || !calMonthYear) return;
+
+    const year = currentCalDate.getFullYear();
+    const month = currentCalDate.getMonth();
+
+    // Set Header
+    calMonthYear.textContent = `${year}년 ${month + 1}월`;
+
+    calGrid.innerHTML = '';
+
+    // Days of Week Header
+    const daysArr = ['일', '월', '화', '수', '목', '금', '토'];
+    daysArr.forEach(day => {
+        const div = document.createElement('div');
+        div.className = 'cal-day-header';
+        div.textContent = day;
+        calGrid.appendChild(div);
+    });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Empty slots
+    for (let i = 0; i < firstDay; i++) {
+        const div = document.createElement('div');
+        div.className = 'cal-day empty';
+        calGrid.appendChild(div);
+    }
+
+    // Real days
+    for (let i = 1; i <= daysInMonth; i++) {
+        const div = document.createElement('div');
+        div.className = 'cal-day';
+        div.textContent = i;
+
+        // Check if there's a post on this day
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        // Fallback or more robust match: check if a post has this date in filename
+        const postForDate = posts.find(p => p.date === dateStr || p.title.includes(dateStr.replace(/-/g, '')));
+
+        if (postForDate) {
+            div.classList.add('has-post');
+            div.addEventListener('click', () => {
+                window.location.hash = encodeURI(postForDate.path);
+            });
+
+            // Check if active
+            if (currentPostPath === postForDate.path) {
+                div.classList.add('active');
+            }
+        }
+
+        calGrid.appendChild(div);
+    }
+}
+
+function changeMonth(offset) {
+    currentCalDate.setMonth(currentCalDate.getMonth() + offset);
+    renderCalendar();
 }
 
 // UI Helpers
@@ -321,6 +447,22 @@ function setupEventListeners() {
 
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
+    }
+
+    // Calendar Pagination
+    if (calPrev) calPrev.addEventListener('click', () => changeMonth(-1));
+    if (calNext) calNext.addEventListener('click', () => changeMonth(1));
+
+    // Progress Bar & Go to Top
+    if (mainContent) {
+        mainContent.addEventListener('scroll', () => {
+            updateProgressBar();
+            toggleGoToTopButton();
+        });
+    }
+
+    if (goToTopBtn) {
+        goToTopBtn.addEventListener('click', scrollToTop);
     }
 }
 

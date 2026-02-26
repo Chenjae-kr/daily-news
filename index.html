@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily News Blog</title>
 
+    <!-- RSS Feed Link -->
+    <link rel="alternate" type="application/rss+xml" title="Daily News RSS Feed" href="./feed.xml" />
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +24,11 @@
 
 <body>
 
+    <!-- Progress Bar -->
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
     <!-- Sidebar for Navigation -->
     <aside id="sidebar" class="glass">
         <div class="sidebar-header">
@@ -29,6 +37,17 @@
         <div class="sidebar-search">
             <input type="text" id="search-input" placeholder="뉴스 검색..." aria-label="검색">
         </div>
+
+        <!-- Calendar Widget Container -->
+        <div id="calendar-widget" class="calendar-widget">
+            <div class="calendar-header">
+                <button id="cal-prev" aria-label="이전 달">&lsaquo;</button>
+                <span id="cal-month-year"></span>
+                <button id="cal-next" aria-label="다음 달">&rsaquo;</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
         <div id="post-list" class="post-list">
             <!-- Dynamically filled with JS -->
         </div>
@@ -102,6 +121,15 @@
             <!-- Dynamically filled with JS -->
         </div>
     </aside>
+
+    <!-- Go to Top Button -->
+    <button id="go-to-top" class="glass" aria-label="맨 위로 가기">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="5 12 12 5 19 12"></polyline>
+        </svg>
+    </button>
 
     <!-- App Script -->
     <script src="./app.js"></script>
