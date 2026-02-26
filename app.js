@@ -39,12 +39,18 @@ async function fetchPosts() {
         if (!res.ok) throw new Error('Failed to fetch posts API');
         posts = await res.json();
 
-        // Process paths and sort by date descending
+        // Process paths and sort by date descending (latest first)
         posts = posts.map(p => ({
             ...p,
             // Extract nice display title if possible from filename, default to basename without extension
             displayTitle: p.title.replace('.md', '').split('_').join(' ')
-        })).sort((a, b) => new Date(b.date) - new Date(a.date));
+        })).sort((a, b) => {
+            // Sort by extracted title if it starts with date (e.g., 20260226) or fallback to file modified date
+            const dateA = a.title.match(/^\d{8}/) ? a.title.substring(0, 8) : a.date;
+            const dateB = b.title.match(/^\d{8}/) ? b.title.substring(0, 8) : b.date;
+            // Descending order (newest first)
+            return dateB.localeCompare(dateA);
+        });
 
         renderSidebar();
     } catch (err) {
