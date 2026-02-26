@@ -57,7 +57,14 @@ function configureMarked() {
 // Fetch Posts Metadata
 async function fetchPosts() {
     try {
-        const res = await fetch('./api/posts.json');
+        let res = await fetch('./api/posts.json');
+
+        // Local Dev Fallback: If posts.json is not built locally, pull from live server
+        if (!res.ok) {
+            console.warn('Local posts.json not found. Fetching from live GitHup Pages...');
+            res = await fetch('https://chenjae-kr.github.io/daily-news/api/posts.json');
+        }
+
         if (!res.ok) throw new Error('Failed to fetch posts API');
         posts = await res.json();
 
@@ -230,7 +237,7 @@ async function loadMarkdown(path) {
         `;
 
         // We wrap in a constrained max-width div similar to dashboard for reading experience
-        markdownContainer.innerHTML = \`<div style="max-width: 800px; margin: 0 auto; padding: 24px 32px;">\${metaHeader}\${html}</div>\`;
+        markdownContainer.innerHTML = `<div style="max-width: 800px; margin: 0 auto; padding: 24px 32px;">${metaHeader}${html}</div>`;
 
         // Generate TOC
         generateTOC();
@@ -267,10 +274,10 @@ async function loadMarkdown(path) {
 
 function buildCategoryFilters(categories) {
     if (!sidebarCategories) return;
-    
+
     sidebarCategories.innerHTML = '';
     currentActiveFilter = 'all';
-    
+
     // Add "All"
     const allChipContainer = document.createElement('li');
     allChipContainer.innerHTML = `< a class="nav-item active" data - cat="all" > 모든 분야</a > `;
@@ -282,12 +289,12 @@ function buildCategoryFilters(categories) {
         window.location.hash = ''; // Return to dashboard
     });
     sidebarCategories.appendChild(allChipContainer);
-    
+
     // Add rest of categories
     categories.forEach(cat => {
         const chipContainer = document.createElement('li');
-        chipContainer.innerHTML = `< a class="nav-item" data - cat="${cat}" > ${ cat }</a > `;
-        
+        chipContainer.innerHTML = `< a class="nav-item" data - cat="${cat}" > ${cat}</a > `;
+
         chipContainer.addEventListener('click', () => {
             currentActiveFilter = cat;
             applyFilters();
@@ -315,8 +322,8 @@ function generateTOC() {
         a.textContent = heading.textContent;
         // Ensure ID
         if (!heading.id) heading.id = 'heading-' + Math.random().toString(36).substr(2, 9);
-        a.href = `#${ heading.id } `;
-        a.className = `toc - item toc - ${ heading.tagName.toLowerCase() } `;
+        a.href = `#${heading.id} `;
+        a.className = `toc - item toc - ${heading.tagName.toLowerCase()} `;
 
         a.addEventListener('click', (e) => {
             e.preventDefault();
@@ -345,7 +352,7 @@ function updateProgressBar() {
         if (progressBar) progressBar.style.width = '0%';
         return;
     }
-    
+
     const scrollHeight = mainContent.scrollHeight - mainContent.clientHeight;
     if (scrollHeight <= 0) {
         if (progressBar) progressBar.style.width = '0%';
@@ -353,7 +360,7 @@ function updateProgressBar() {
     }
     const progress = (mainContent.scrollTop / scrollHeight) * 100;
     if (progressBar) {
-        progressBar.style.width = `${ progress }% `;
+        progressBar.style.width = `${progress}% `;
     }
 }
 
@@ -380,7 +387,7 @@ function renderCalendar() {
     const year = currentCalDate.getFullYear();
     const month = currentCalDate.getMonth();
 
-    calMonthYear.textContent = `${ year }년 ${ month + 1 } 월`;
+    calMonthYear.textContent = `${year}년 ${month + 1} 월`;
     calGrid.innerHTML = '';
 
     const daysArr = ['일', '월', '화', '수', '목', '금', '토'];
@@ -405,8 +412,8 @@ function renderCalendar() {
         div.className = 'cal-day';
         div.textContent = i;
 
-        const dateStr = `${ year } -${ String(month + 1).padStart(2, '0') } -${ String(i).padStart(2, '0') } `;
-        
+        const dateStr = `${year} -${String(month + 1).padStart(2, '0')} -${String(i).padStart(2, '0')} `;
+
         const postForDate = posts.find(p => p.date === dateStr);
 
         if (postForDate) {
