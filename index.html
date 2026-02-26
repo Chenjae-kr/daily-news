@@ -26,6 +26,9 @@
         <div class="sidebar-header">
             <h1>Daily News</h1>
         </div>
+        <div class="sidebar-search">
+            <input type="text" id="search-input" placeholder="뉴스 검색..." aria-label="검색">
+        </div>
         <div id="post-list" class="post-list">
             <!-- Dynamically filled with JS -->
         </div>
@@ -91,6 +94,14 @@
         </article>
 
     </main>
+
+    <!-- Right Sidebar for Table of Contents -->
+    <aside id="toc-sidebar" class="glass">
+        <div class="toc-header">목차</div>
+        <div id="toc-list" class="toc-list">
+            <!-- Dynamically filled with JS -->
+        </div>
+    </aside>
 
     <!-- App Script -->
     <script src="./app.js"></script>

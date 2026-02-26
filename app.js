@@ -9,9 +9,12 @@ const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('overlay');
 const activeCategoryDisplay = document.getElementById('active-category');
+const searchInput = document.getElementById('search-input');
+const tocList = document.getElementById('toc-list');
 
 // State
 let posts = [];
+let filteredPosts = [];
 let currentPostPath = null;
 
 // Initialize
@@ -40,11 +43,19 @@ async function fetchPosts() {
         posts = await res.json();
 
         // Process paths and sort by date descending (latest first)
-        posts = posts.map(p => ({
-            ...p,
-            // Extract nice display title if possible from filename, default to basename without extension
-            displayTitle: p.title.replace('.md', '').split('_').join(' ')
-        })).sort((a, b) => {
+        posts = posts.map(p => {
+            let niceTitle = p.title.replace('.md', '').split('_').join(' ');
+            // If title is like 20260224_dailynews, format it nicely
+            const dateMatch = p.title.match(/^(\d{4})(\d{2})(\d{2})/);
+            if (dateMatch) {
+                niceTitle = `${dateMatch[1]}년 ${dateMatch[2]}월 ${dateMatch[3]}일 데일리 뉴스`;
+            }
+
+            return {
+                ...p,
+                displayTitle: niceTitle
+            };
+        }).sort((a, b) => {
             // Sort by extracted title if it starts with date (e.g., 20260226) or fallback to file modified date
             const dateA = a.title.match(/^\d{8}/) ? a.title.substring(0, 8) : a.date;
             const dateB = b.title.match(/^\d{8}/) ? b.title.substring(0, 8) : b.date;
@@ -52,6 +63,7 @@ async function fetchPosts() {
             return dateB.localeCompare(dateA);
         });
 
+        filteredPosts = [...posts];
         renderSidebar();
     } catch (err) {
         console.error('Error fetching posts:', err);
@@ -59,15 +71,26 @@ async function fetchPosts() {
     }
 }
 
+// Search Filter functionality
+function handleSearch(e) {
+    const query = e.target.value.toLowerCase();
+    filteredPosts = posts.filter(post =>
+        post.displayTitle.toLowerCase().includes(query) ||
+        post.date.toLowerCase().includes(query) ||
+        post.title.toLowerCase().includes(query)
+    );
+    renderSidebar();
+}
+
 // Render Sidebar List
 function renderSidebar() {
     postListContainer.innerHTML = '';
-    if (posts.length === 0) {
-        postListContainer.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-secondary)">게시글이 없습니다.</div>';
+    if (filteredPosts.length === 0) {
+        postListContainer.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-secondary)">검색 결과가 없습니다.</div>';
         return;
     }
 
-    posts.forEach(post => {
+    filteredPosts.forEach(post => {
         // We'll use the URL path as the unique hash
         const hashPath = encodeURI(post.path);
 
@@ -123,12 +146,31 @@ async function loadMarkdown(path) {
 
         const html = marked.parse(mdText);
 
-        markdownContainer.innerHTML = html;
+        // Calculate Read Time
+        const wordCount = mdText.replace(/[#*`\n]/g, ' ').split(/\s+/).filter(word => word.length > 0).length;
+        const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
+
+        // Inject Meta Header (Read Time & Share Button)
+        const metaHeader = `
+            <div class="post-meta-header">
+                <div class="read-time">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    읽기 약 ${readTimeMinutes}분 소요
+                </div>
+                <button class="share-btn" onclick="shareCurrentPost()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                    링크 복사
+                </button>
+            </div>
+        `;
+
+        markdownContainer.innerHTML = metaHeader + html;
+
+        // Generate TOC
+        generateTOC();
 
         // Optional: Extract first h1 or h2 to update activeCategory/mobile header title
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        const firstHeading = tempDiv.querySelector('h1, h2');
+        const firstHeading = markdownContainer.querySelector('h1, h2');
         if (activeCategoryDisplay && firstHeading) {
             activeCategoryDisplay.textContent = firstHeading.textContent;
         } else if (activeCategoryDisplay) {
@@ -151,6 +193,44 @@ async function loadMarkdown(path) {
         markdownContainer.innerHTML = `<div style="text-align:center;color:red;padding:40px;">문서를 불러오는 데 실패했습니다.</div>`;
         hideLoader();
     }
+}
+
+// Generate Table of Contents
+function generateTOC() {
+    if (!tocList) return;
+    tocList.innerHTML = '';
+
+    // Select all H2 and H3 generated by Marked (marked auto-generates IDs)
+    const headings = markdownContainer.querySelectorAll('h2, h3');
+    if (headings.length === 0) {
+        tocList.innerHTML = '<div style="color:var(--text-secondary);font-size:0.85rem;padding:12px 0;">목차가 없습니다.</div>';
+        return;
+    }
+
+    headings.forEach(heading => {
+        const a = document.createElement('a');
+        a.textContent = heading.textContent;
+        a.href = `#${heading.id}`;
+        a.className = `toc-item toc-${heading.tagName.toLowerCase()}`;
+
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            heading.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        tocList.appendChild(a);
+    });
+}
+
+// Share Button Logic
+function shareCurrentPost() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('게시글 주소가 복사되었습니다.');
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        alert('주소 복사에 실패했습니다.');
+    });
 }
 
 // UI Helpers
@@ -237,6 +317,10 @@ function setupEventListeners() {
 
     if (overlay) {
         overlay.addEventListener('click', closeMobileMenu);
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
     }
 }
 
