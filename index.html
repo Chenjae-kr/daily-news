@@ -32,24 +32,39 @@
     <!-- Sidebar for Navigation -->
     <aside id="sidebar" class="glass">
         <div class="sidebar-header">
-            <h1>Daily News</h1>
+            <h1 style="display:flex; align-items:center; gap:8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                    class="feather feather-compass">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                </svg>
+                Daily News
+            </h1>
         </div>
         <div class="sidebar-search">
             <input type="text" id="search-input" placeholder="뉴스 검색..." aria-label="검색">
         </div>
 
+        <!-- Sidebar Navigation (Categories) -->
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">분야별 뉴스</div>
+            <ul id="sidebar-categories" class="nav-list">
+                <!-- Dynamically filled with JS -->
+            </ul>
+        </nav>
+
+        <div class="sidebar-spacer" style="flex:1;"></div>
+
         <!-- Calendar Widget Container -->
-        <div id="calendar-widget" class="calendar-widget">
+        <div id="calendar-widget" class="calendar-widget"
+            style="border-bottom:none; border-top: 0.5px solid var(--glass-border); padding-top: 16px;">
             <div class="calendar-header">
                 <button id="cal-prev" aria-label="이전 달">&lsaquo;</button>
                 <span id="cal-month-year"></span>
                 <button id="cal-next" aria-label="다음 달">&rsaquo;</button>
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
-        </div>
-
-        <div id="post-list" class="post-list">
-            <!-- Dynamically filled with JS -->
         </div>
     </aside>
 
@@ -98,23 +113,17 @@
             </div>
         </div>
 
-        <!-- Sticky Category Filter Rail (Moved to be global) -->
-        <div id="category-filter-rail" class="category-rail">
-            <div class="category-chips-container" id="category-chips-container">
-                <!-- Dynamically filled with JS based on posts.json categories -->
-            </div>
-        </div>
-
         <div id="loader"></div>
 
         <!-- Dashboard View (Shown by default) -->
-        <div id="dashboard-view" style="display: none; padding: 24px 32px;">
+        <div id="dashboard-view" style="display: none; padding: 40px; max-width: 1400px; margin: 0 auto;">
             <div class="dashboard-header"
-                style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
+                style="margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end;">
                 <div>
-                    <h2 style="font-size: 1.5rem; font-weight: 700;" id="dashboard-title">최신 브리핑</h2>
-                    <p style="color: var(--text-secondary); font-size: 0.95rem;" id="dashboard-subtitle">가장 최근 수집된 뉴스
-                        요약입니다.</p>
+                    <h2 style="font-size: 2rem; font-weight: 700; letter-spacing: -0.02em;" id="dashboard-title">뉴스 브리핑
+                    </h2>
+                    <p style="color: var(--text-secondary); font-size: 1.05rem; margin-top: 8px;"
+                        id="dashboard-subtitle">가장 최근 수집된 뉴스 요약입니다.</p>
                 </div>
                 <button id="clear-filters-btn"
                     style="display: none; background: var(--surface-color); border: 0.5px solid var(--glass-border); padding: 4px 10px; border-radius: 14px; font-size: 0.8rem; cursor: pointer;">필터
@@ -134,7 +143,7 @@
     </main>
 
     <!-- Right Sidebar for Table of Contents -->
-    <aside id="toc-sidebar" class="glass">
+    <aside id="toc-sidebar" class="glass hidden-in-dashboard">
         <div class="toc-header">목차</div>
         <div id="toc-list" class="toc-list">
             <!-- Dynamically filled with JS -->

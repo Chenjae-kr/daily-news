@@ -1,5 +1,4 @@
 // DOM Elements
-const postListContainer = document.getElementById('post-list');
 const markdownContainer = document.getElementById('markdown-container');
 const loader = document.getElementById('loader');
 const themeToggleBtn = document.getElementById('theme-toggle');
@@ -10,6 +9,7 @@ const overlay = document.getElementById('overlay');
 const activeCategoryDisplay = document.getElementById('active-category');
 const searchInput = document.getElementById('search-input');
 const tocList = document.getElementById('toc-list');
+const tocSidebar = document.getElementById('toc-sidebar');
 const progressBar = document.getElementById('progress-bar');
 const goToTopBtn = document.getElementById('go-to-top');
 const mainContent = document.getElementById('main-content');
@@ -23,9 +23,8 @@ const calGrid = document.getElementById('calendar-grid');
 const calPrev = document.getElementById('cal-prev');
 const calNext = document.getElementById('cal-next');
 
-// Category Rail
-const categoryRail = document.getElementById('category-filter-rail');
-const categoryChipsContainer = document.getElementById('category-chips-container');
+// Category Sidebar
+const sidebarCategories = document.getElementById('sidebar-categories');
 let currentActiveFilter = 'all';
 
 // State
@@ -76,7 +75,6 @@ async function fetchPosts() {
         const uniqueCategories = [...new Set(posts.map(p => p.category))].filter(Boolean);
         buildCategoryFilters(uniqueCategories);
 
-        renderSidebar();
         renderCalendar();
         renderDashboard();
     } catch (err) {
@@ -104,58 +102,39 @@ function applyFilters() {
     });
 
     // Toggle clear filters button
-    if (currentActiveFilter !== 'all' || currentDateFilter || currentSearchQuery) {
-        clearFiltersBtn.style.display = 'block';
-    } else {
-        clearFiltersBtn.style.display = 'none';
+    if (clearFiltersBtn) {
+        if (currentActiveFilter !== 'all' || currentDateFilter || currentSearchQuery) {
+            clearFiltersBtn.style.display = 'block';
+        } else {
+            clearFiltersBtn.style.display = 'none';
+        }
     }
 
-    renderSidebar();
     renderDashboard();
     renderCalendar(); // To update highlights
 }
 
-clearFiltersBtn.addEventListener('click', () => {
-    currentActiveFilter = 'all';
-    currentDateFilter = null;
-    currentSearchQuery = '';
-    searchInput.value = '';
+if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => {
+        currentActiveFilter = 'all';
+        currentDateFilter = null;
+        currentSearchQuery = '';
+        if (searchInput) searchInput.value = '';
 
-    // Reset chips visually
-    Array.from(categoryChipsContainer.children).forEach(c => {
-        if (c.dataset.cat === 'all') c.classList.add('active');
-        else c.classList.remove('active');
-    });
+        // Reset navigation styles
+        Array.from(sidebarCategories.querySelectorAll('.nav-item')).forEach(c => {
+            if (c.dataset.cat === 'all') c.classList.add('active');
+            else c.classList.remove('active');
+        });
 
-    applyFilters();
-});
-
-// Render Sidebar List
-function renderSidebar() {
-    postListContainer.innerHTML = '';
-    if (filteredPosts.length === 0) {
-        postListContainer.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-secondary)">검색 결과가 없습니다.</div>';
-        return;
-    }
-
-    filteredPosts.forEach(post => {
-        const hashPath = encodeURI(post.path);
-        const a = document.createElement('a');
-        a.href = `#${hashPath}`;
-        a.className = 'post-item glass';
-        a.dataset.path = post.path;
-
-        a.innerHTML = `
-      <div class="post-title" style="font-size:0.95rem; font-weight:600;">${post.displayTitle}</div>
-      <div class="post-date" style="font-size:0.75rem">${post.date}</div>
-    `;
-
-        postListContainer.appendChild(a);
+        applyFilters();
     });
 }
 
 function renderDashboard() {
+    if (!dashboardCards) return;
     dashboardCards.innerHTML = '';
+
     if (filteredPosts.length === 0) {
         dashboardCards.innerHTML = '<div style="color:var(--text-secondary); grid-column: 1/-1;">조건에 맞는 뉴스가 없습니다.</div>';
         return;
@@ -182,15 +161,6 @@ async function handleRoute() {
     const hash = window.location.hash.slice(1);
     const path = decodeURI(hash);
 
-    // Update Active State in Sidebar
-    document.querySelectorAll('.post-item').forEach(el => {
-        el.classList.remove('active');
-        if (el.dataset.path === path) {
-            el.classList.add('active');
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    });
-
     if (!path || !path.endsWith('.md')) {
         showDashboard();
         closeMobileMenu();
@@ -203,9 +173,9 @@ async function handleRoute() {
 }
 
 function showDashboard() {
-    markdownContainer.style.display = 'none';
-    dashboardView.style.display = 'block';
-    categoryRail.style.display = 'block';
+    if (markdownContainer) markdownContainer.style.display = 'none';
+    if (dashboardView) dashboardView.style.display = 'block';
+    if (tocSidebar) tocSidebar.classList.add('hidden-in-dashboard');
 
     if (activeCategoryDisplay) activeCategoryDisplay.textContent = 'Daily News';
 }
@@ -222,12 +192,9 @@ async function loadMarkdown(path) {
         let html = contentText;
         // If it's pure markdown (local test), parse it. If it's already HTML (Jekyll), use as is.
         if (!contentText.trim().startsWith('<') && !contentText.match(/<h[1-6]/i)) {
-            // Strip YAML frontmatter before parsing as markdown
             const matterRegex = /^---[\s\S]*?---\n/;
             const cleanMarkdown = contentText.replace(matterRegex, '');
             html = marked.parse(cleanMarkdown);
-        } else {
-            // It's HTML, the frontmatter was already stripped by Jekyll
         }
 
         // Highlight keywords if search is active
@@ -236,40 +203,48 @@ async function loadMarkdown(path) {
             html = html.replace(regex, '<span class="highlight">$1</span>');
         }
 
-        // Calculate Read Time (Strip tags if fetching HTML)
+        // Calculate Read Time
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
         const wordCount = tempDiv.textContent.replace(/[#*`\n]/g, ' ').split(/\s+/).filter(word => word.length > 0).length;
         const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
-        // Inject Meta Header (Read Time & Share Button)
+        // Inject Meta Header (Back button, Read Time & Share Button)
         const metaHeader = `
-            <div class="post-meta-header">
-                <div class="read-time">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    읽기 약 ${readTimeMinutes}분 소요
+            <div class="post-meta-header" style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 0.5px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <a href="#" style="color: var(--accent-color); text-decoration: none; display: flex; align-items: center; gap: 4px; font-weight: 500; font-size: 0.95rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    대시보드로 돌아가기
+                </a>
+                <div style="display:flex; align-items:center; gap: 12px;">
+                    <div class="read-time" style="font-size:0.85rem; color: var(--text-secondary);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px; vertical-align:middle;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        약 ${readTimeMinutes}분 
+                    </div>
+                    <button class="share-btn" onclick="shareCurrentPost()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                        공유
+                    </button>
                 </div>
-                <button class="share-btn" onclick="shareCurrentPost()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-                    링크 복사
-                </button>
             </div>
         `;
 
-        markdownContainer.innerHTML = metaHeader + html;
+        // We wrap in a constrained max-width div similar to dashboard for reading experience
+        markdownContainer.innerHTML = \`<div style="max-width: 800px; margin: 0 auto; padding: 24px 32px;">\${metaHeader}\${html}</div>\`;
 
         // Generate TOC
         generateTOC();
 
-        // Optional: Update title
+        // Update active displays
         const postData = posts.find(p => p.path === path);
         if (activeCategoryDisplay && postData) {
-            activeCategoryDisplay.textContent = postData.displayTitle;
+            activeCategoryDisplay.textContent = postData.category + ' 주요 뉴스';
         }
 
-        // Hide Dashboard, Show Markdown
-        dashboardView.style.display = 'none';
-        markdownContainer.style.display = 'block';
+        // Hide Dashboard, Show Markdown, Show TOC Sidebar
+        if (dashboardView) dashboardView.style.display = 'none';
+        if (markdownContainer) markdownContainer.style.display = 'block';
+        if (tocSidebar) tocSidebar.classList.remove('hidden-in-dashboard');
 
         // Animation trigger
         markdownContainer.classList.remove('loaded');
@@ -279,52 +254,48 @@ async function loadMarkdown(path) {
         hideLoader();
 
         // Reset scroll and progress
-        mainContent.scrollTop = 0;
+        if (mainContent) mainContent.scrollTop = 0;
         updateProgressBar();
         toggleGoToTopButton();
 
     } catch (err) {
         console.error('Error loading markdown:', err);
-        markdownContainer.innerHTML = `<div style="text-align:center;color:red;padding:40px;">문서를 불러오는 데 실패했습니다.</div>`;
+        markdownContainer.innerHTML = `< div style = "text-align:center;color:red;padding:40px;" > 문서를 불러오는 데 실패했습니다.</div > `;
         hideLoader();
     }
 }
 
 function buildCategoryFilters(categories) {
-    if (!categoryRail || !categoryChipsContainer) return;
-
-    categoryChipsContainer.innerHTML = '';
+    if (!sidebarCategories) return;
+    
+    sidebarCategories.innerHTML = '';
     currentActiveFilter = 'all';
-
-    // Add "All" chip
-    const allChip = document.createElement('div');
-    allChip.className = 'cat-chip active';
-    allChip.textContent = '모든 분야';
-    allChip.dataset.cat = 'all';
-    allChip.addEventListener('click', () => {
+    
+    // Add "All"
+    const allChipContainer = document.createElement('li');
+    allChipContainer.innerHTML = `< a class="nav-item active" data - cat="all" > 모든 분야</a > `;
+    allChipContainer.addEventListener('click', () => {
         currentActiveFilter = 'all';
         applyFilters();
-        Array.from(categoryChipsContainer.children).forEach(c => c.classList.remove('active'));
-        allChip.classList.add('active');
+        Array.from(sidebarCategories.querySelectorAll('.nav-item')).forEach(c => c.classList.remove('active'));
+        allChipContainer.querySelector('.nav-item').classList.add('active');
         window.location.hash = ''; // Return to dashboard
     });
-    categoryChipsContainer.appendChild(allChip);
-
-    // Add chip for each category
+    sidebarCategories.appendChild(allChipContainer);
+    
+    // Add rest of categories
     categories.forEach(cat => {
-        const chip = document.createElement('div');
-        chip.className = 'cat-chip';
-        chip.textContent = cat;
-        chip.dataset.cat = cat;
-
-        chip.addEventListener('click', () => {
+        const chipContainer = document.createElement('li');
+        chipContainer.innerHTML = `< a class="nav-item" data - cat="${cat}" > ${ cat }</a > `;
+        
+        chipContainer.addEventListener('click', () => {
             currentActiveFilter = cat;
             applyFilters();
-            Array.from(categoryChipsContainer.children).forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
+            Array.from(sidebarCategories.querySelectorAll('.nav-item')).forEach(c => c.classList.remove('active'));
+            chipContainer.querySelector('.nav-item').classList.add('active');
             window.location.hash = ''; // Return to dashboard
         });
-        categoryChipsContainer.appendChild(chip);
+        sidebarCategories.appendChild(chipContainer);
     });
 }
 
@@ -342,10 +313,10 @@ function generateTOC() {
     headings.forEach(heading => {
         const a = document.createElement('a');
         a.textContent = heading.textContent;
-        // Ensure ID exists (Kramdown might add them, but marked.js does. If missing, make one)
+        // Ensure ID
         if (!heading.id) heading.id = 'heading-' + Math.random().toString(36).substr(2, 9);
-        a.href = `#${heading.id}`;
-        a.className = `toc-item toc-${heading.tagName.toLowerCase()}`;
+        a.href = `#${ heading.id } `;
+        a.className = `toc - item toc - ${ heading.tagName.toLowerCase() } `;
 
         a.addEventListener('click', (e) => {
             e.preventDefault();
@@ -370,12 +341,11 @@ function shareCurrentPost() {
 // Progress Bar Logic
 function updateProgressBar() {
     if (!mainContent) return;
-    // Only update progress when reading a post, not on dashboard
-    if (markdownContainer.style.display === 'none') {
+    if (!markdownContainer || markdownContainer.style.display === 'none') {
         if (progressBar) progressBar.style.width = '0%';
         return;
     }
-
+    
     const scrollHeight = mainContent.scrollHeight - mainContent.clientHeight;
     if (scrollHeight <= 0) {
         if (progressBar) progressBar.style.width = '0%';
@@ -383,7 +353,7 @@ function updateProgressBar() {
     }
     const progress = (mainContent.scrollTop / scrollHeight) * 100;
     if (progressBar) {
-        progressBar.style.width = `${progress}%`;
+        progressBar.style.width = `${ progress }% `;
     }
 }
 
@@ -410,7 +380,7 @@ function renderCalendar() {
     const year = currentCalDate.getFullYear();
     const month = currentCalDate.getMonth();
 
-    calMonthYear.textContent = `${year}년 ${month + 1}월`;
+    calMonthYear.textContent = `${ year }년 ${ month + 1 } 월`;
     calGrid.innerHTML = '';
 
     const daysArr = ['일', '월', '화', '수', '목', '금', '토'];
@@ -435,9 +405,8 @@ function renderCalendar() {
         div.className = 'cal-day';
         div.textContent = i;
 
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-
-        // Find if any post matches this date
+        const dateStr = `${ year } -${ String(month + 1).padStart(2, '0') } -${ String(i).padStart(2, '0') } `;
+        
         const postForDate = posts.find(p => p.date === dateStr);
 
         if (postForDate) {
@@ -447,12 +416,11 @@ function renderCalendar() {
                     currentDateFilter = null;
                 } else {
                     currentDateFilter = dateStr;
-                    window.location.hash = ''; // View the dashboard filtered by this date
+                    window.location.hash = ''; // Return to dashboard to see filter
                 }
                 applyFilters();
             });
 
-            // Highlight if currently filtering by this date
             if (currentDateFilter === dateStr) {
                 div.classList.add('active');
             }
@@ -469,18 +437,17 @@ function changeMonth(offset) {
 
 // UI Helpers
 function showLoader() {
-    dashboardView.style.display = 'none';
-    markdownContainer.style.display = 'none';
-    loader.style.display = 'block';
+    if (dashboardView) dashboardView.style.display = 'none';
+    if (markdownContainer) markdownContainer.style.display = 'none';
+    if (loader) loader.style.display = 'block';
 }
 
 function hideLoader() {
-    loader.style.display = 'none';
-    // Active container display is managed in routing
+    if (loader) loader.style.display = 'none';
 }
 
 function closeMobileMenu() {
-    if (sidebar.classList.contains('open')) {
+    if (sidebar && sidebar.classList.contains('open')) {
         sidebar.classList.remove('open');
         overlay.classList.remove('show');
     }
@@ -505,8 +472,8 @@ function toggleTheme() {
 }
 
 function updateThemeIcon(theme) {
-    const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
-    const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+    const sunIcon = `< svg xmlns = "http://www.w3.org/2000/svg" width = "20" height = "20" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" stroke - width="2" stroke - linecap="round" stroke - linejoin="round" ><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg > `;
+    const moonIcon = `< svg xmlns = "http://www.w3.org/2000/svg" width = "20" height = "20" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" stroke - width="2" stroke - linecap="round" stroke - linejoin="round" > <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg > `;
 
     const iconHTML = theme === 'dark' ? sunIcon : moonIcon;
 
