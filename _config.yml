@@ -1,0 +1,11 @@
+# Jekyll _config.yml
+encoding: UTF-8
+
+# Set default layout to null for md folder so Jekyll doesn't wrap them in HTML boilerplate
+# We will just fetch the converted HTML directly.
+defaults:
+  - scope:
+      path: "md"
+    values:
+      layout: null
+      permalink: /:path/:basename.md

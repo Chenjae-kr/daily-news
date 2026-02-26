@@ -98,27 +98,34 @@
             </div>
         </div>
 
-        <!-- Sticky Category Filter Rail -->
-        <div id="category-filter-rail" class="category-rail" style="display: none;">
+        <!-- Sticky Category Filter Rail (Moved to be global) -->
+        <div id="category-filter-rail" class="category-rail">
             <div class="category-chips-container" id="category-chips-container">
-                <!-- Dynamically filled with JS based on the current markdown content -->
+                <!-- Dynamically filled with JS based on posts.json categories -->
             </div>
         </div>
 
         <div id="loader"></div>
 
-        <div id="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            <h2>왼쪽 목록에서 글을 선택해주세요.</h2>
-            <p style="margin-top: 8px;">최근 발행된 뉴스를 찾아보세요.</p>
+        <!-- Dashboard View (Shown by default) -->
+        <div id="dashboard-view" style="display: none; padding: 24px 32px;">
+            <div class="dashboard-header"
+                style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2 style="font-size: 1.5rem; font-weight: 700;" id="dashboard-title">최신 브리핑</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.95rem;" id="dashboard-subtitle">가장 최근 수집된 뉴스
+                        요약입니다.</p>
+                </div>
+                <button id="clear-filters-btn"
+                    style="display: none; background: var(--surface-color); border: 0.5px solid var(--glass-border); padding: 4px 10px; border-radius: 14px; font-size: 0.8rem; cursor: pointer;">필터
+                    초기화 ✕</button>
+            </div>
+            <div id="dashboard-cards" class="dashboard-cards">
+                <!-- Cards injected here -->
+            </div>
         </div>
+
+
 
         <article id="markdown-container">
             <!-- Markdown Content rendered here -->
