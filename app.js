@@ -21,6 +21,11 @@ const calGrid = document.getElementById('calendar-grid');
 const calPrev = document.getElementById('cal-prev');
 const calNext = document.getElementById('cal-next');
 
+// Category Rail
+const categoryRail = document.getElementById('category-filter-rail');
+const categoryChipsContainer = document.getElementById('category-chips-container');
+let currentActiveFilter = 'all';
+
 // State
 let posts = [];
 let filteredPosts = [];
@@ -200,6 +205,9 @@ async function loadMarkdown(path) {
         // Generate TOC
         generateTOC();
 
+        // Build Category Rail from H2 tags
+        buildCategoryFilters();
+
         // Optional: Extract first h1 or h2 to update activeCategory/mobile header title
         const firstHeading = markdownContainer.querySelector('h1, h2');
         if (activeCategoryDisplay && firstHeading) {
@@ -253,6 +261,89 @@ function generateTOC() {
 
         tocList.appendChild(a);
     });
+}
+
+// Build Category Filters from Document Headers
+function buildCategoryFilters() {
+    if (!categoryRail || !categoryChipsContainer) return;
+
+    // Find all primary categories (H2 headers usually in this md structure)
+    // We will look for headers like "1. 경제", "2. AI", etc.
+    const h2s = Array.from(markdownContainer.querySelectorAll('h2'));
+
+    // If no distinct sections, hide the rail
+    if (h2s.length === 0) {
+        categoryRail.style.display = 'none';
+        return;
+    }
+
+    categoryChipsContainer.innerHTML = '';
+    currentActiveFilter = 'all';
+    categoryRail.style.display = 'block';
+
+    // Add "All" chip
+    const allChip = document.createElement('div');
+    allChip.className = 'cat-chip active';
+    allChip.textContent = '모든 분야';
+    allChip.addEventListener('click', () => filterSection('all', allChip));
+    categoryChipsContainer.appendChild(allChip);
+
+    // Add chip for each H2
+    h2s.forEach((h2, index) => {
+        // Clean up the text (remove leading numbers/punctuation if desired, but here we just take the text)
+        let name = h2.textContent.replace(/^\d+\.\s*/, '').trim();
+
+        const chip = document.createElement('div');
+        chip.className = 'cat-chip';
+        chip.textContent = name;
+
+        // When chip clicked, filter
+        chip.addEventListener('click', () => filterSection(h2, chip));
+        categoryChipsContainer.appendChild(chip);
+    });
+}
+
+// Logic to show/hide sections based on clicked H2
+function filterSection(targetH2, activeChip) {
+    if (currentActiveFilter === targetH2) return;
+    currentActiveFilter = targetH2;
+
+    // Update chip styles
+    Array.from(categoryChipsContainer.children).forEach(c => c.classList.remove('active'));
+    activeChip.classList.add('active');
+
+    const elements = Array.from(markdownContainer.children);
+
+    if (targetH2 === 'all') {
+        // Show everything
+        elements.forEach(el => el.classList.remove('section-hidden'));
+        return;
+    }
+
+    // Hide everything first
+    elements.forEach(el => el.classList.add('section-hidden'));
+
+    // Unhide the meta header always (it is at the very top)
+    const metaHeader = markdownContainer.querySelector('.post-meta-header');
+    if (metaHeader) metaHeader.classList.remove('section-hidden');
+
+    // Find the target H2, and show all elements until the next H2
+    let isTargetSection = false;
+    for (let el of elements) {
+        if (el.tagName === 'H2') {
+            isTargetSection = (el === targetH2);
+        }
+
+        if (isTargetSection) {
+            el.classList.remove('section-hidden');
+        }
+    }
+
+    // Re-generate TOC to match only visible items
+    generateTOC();
+
+    // Scroll up
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Share Button Logic

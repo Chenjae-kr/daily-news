@@ -77,21 +77,33 @@
             </button>
         </header>
 
-        <!-- Theme Toggle for Desktop (Floating) if placed here, or integrate into header. We'll float it for desktop -->
-        <button id="theme-toggle-desktop" class="glass"
-            style="position: absolute; top: 24px; right: 24px; padding: 12px; border-radius: 50%; cursor: pointer; z-index: 100; min-width: 44px; min-height: 44px; justify-content: center; align-items: center; display: flex; color: var(--text-primary); border: 1px solid var(--glass-border); box-shadow: var(--shadow); background: var(--surface-color);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-        </button>
-        <style>
-            @media (max-width: 768px) {
-                #theme-toggle-desktop {
-                    display: none !important;
-                }
-            }
-        </style>
+        <!-- Content Area -->
+        <div id="content-header">
+            <h2 id="active-category">Daily News</h2>
+            <div class="header-actions">
+                <!-- Share Button (Moved from inside MD to Header for global access) -->
+                <button class="share-btn header-share-btn" onclick="shareCurrentPost()" aria-label="현재 링크 복사"
+                    style="display:none; margin-right: 12px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                        <polyline points="16 6 12 2 8 6"></polyline>
+                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                    링크 복사
+                </button>
+                <button id="theme-toggle-desktop" aria-label="테마 변경">
+                    <!-- Icon injected by JS -->
+                </button>
+            </div>
+        </div>
+
+        <!-- Sticky Category Filter Rail -->
+        <div id="category-filter-rail" class="category-rail" style="display: none;">
+            <div class="category-chips-container" id="category-chips-container">
+                <!-- Dynamically filled with JS based on the current markdown content -->
+            </div>
+        </div>
 
         <div id="loader"></div>
 

@@ -431,6 +431,82 @@ body {
   margin-bottom: 0.5em;
 }
 
+/* Category Filter Rail */
+#content-header {
+  padding: 24px 32px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#content-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.category-rail {
+  position: sticky;
+  top: 72px;
+  /* right below the mobile header or top of screen */
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 0.5px solid var(--glass-border);
+  z-index: 10;
+  padding: 12px 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.category-chips-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.category-chips-container::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari */
+}
+
+.cat-chip {
+  background: var(--surface-color);
+  border: 0.5px solid var(--glass-border);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.cat-chip:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.cat-chip.active {
+  background: var(--accent-color);
+  color: #fff;
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 6px rgba(10, 132, 255, 0.3);
+}
+
+/* For filtering logic: hide unselected sections */
+.section-hidden {
+  display: none !important;
+}
+
 #markdown-container code {
   background-color: var(--surface-color);
   color: var(--text-primary);
