@@ -35,13 +35,13 @@
 daily-news/
  README.md              # 프로젝트 설명
  prompt.md              # AI에 입력할 뉴스 정리 프롬프트
- textFile/
+ md/
      YYYY/
          MM/
              YYYYMMDD_dailynews.md   # 날짜별 뉴스 파일
 ```
 
-**예시**: `textFile/2026/02/20260224_dailynews.md`
+**예시**: `md/2026/02/20260224_dailynews.md`
 
 ---
 
@@ -49,4 +49,4 @@ daily-news/
 
 1. `prompt.md` 파일을 열어 날짜(`{{YYYY년 MM월 DD일}}`)를 오늘 날짜로 교체
 2. 프롬프트 전체를 AI(ChatGPT, Claude 등)에 붙여넣기
-3. 생성된 결과를 `textFile/YYYY/MM/YYYYMMDD_dailynews.md` 경로에 저장
+3. 생성된 결과를 `md/YYYY/MM/YYYYMMDD_dailynews.md` 경로에 저장

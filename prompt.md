@@ -3,8 +3,8 @@
 ## 사용 방법
 아래 프롬프트를 AI에 입력하여 날짜별 뉴스를 정리합니다.
 파일명 형식: `YYYYMMDD_dailynews.md`
-저장 경로: `\textFile\YYYY\MM\YYYYMMDD_dailynews.md`
-예시: `\textFile\2026\02\20260224_dailynews.md`
+저장 경로: `\md\YYYY\MM\YYYYMMDD_dailynews.md`
+예시: `\md\2026\02\20260224_dailynews.md`
 ---
 
 ## 프롬프트
