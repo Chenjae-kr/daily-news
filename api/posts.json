@@ -25,7 +25,7 @@ layout: null
             }
         },
         "summary": {
-            { post.summary | default: '' | jsonify
+            { post.summary | strip_html | strip_newlines | jsonify | default: '""'
             }
         }
     }{% unless forloop.last %
