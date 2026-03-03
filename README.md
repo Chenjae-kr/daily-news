@@ -1,77 +1,96 @@
-﻿# Daily News
+# Daily News
 
-매일 분야별 주요 뉴스를 AI로 정리하는 프로젝트입니다.
+매일 주요 뉴스를 AI로 정리해 Markdown으로 저장하고, GitHub Pages로 발행하는 프로젝트입니다.
 
 ---
 
 ## 개요
 
 - **데이터 범위**: 최근 24시간 뉴스 + 최신 시장 데이터 기준
-- **루머/커뮤니티성 정보**: `[루머]` 태그로 별도 표시
-- **출처 신뢰도**: 각 항목마다 `[높음 / 중간 / 낮음]` 표시
-- **출처 URL**: 각 뉴스 항목의 요약 뒤에 링크 형식으로 제공
+- **신뢰도 표기**: 항목별 `[높음 / 중간 / 낮음]`
+- **루머/커뮤니티성 정보**: `[루머]` 태그로 분리
+- **출처 표기**: 요약 뒤 `[출처: URL]` 포함
 
 ---
 
-## 정리 분야
+## 현재 저장 구조
 
-| # | 분야 | 세부 항목 |
-|---|------|-----------|
-| 1 | **경제** | 미국 시장 (S&P500, Nasdaq, Dow, 달러인덱스) |
-| | | 한국 시장 (코스피, 코스닥, 원/달러 환율) |
-| | | 원자재 (금, 은, 유가) |
-| | | 오늘 시장에 영향을 준 주요 재료 |
-| 2 | **AI** | AI 관련 새로운 소식 (모델 출시, 기업 동향, 연구) |
-| 3 | **한국 부동산** | 새로운 정부 부동산 정책 |
-| | | 부동산 흐름 (가격 동향, 거래량, 청약) |
-| 4 | **오늘의 주요 뉴스** | 분야 구분 없이 오늘 가장 중요한 뉴스 5~10건 |
-| 5 | **종합 요약** | 오늘 전체 흐름 5~10줄 총정리 |
-
----
-
-## 파일 구조
-
-```
+```txt
 daily-news/
- README.md              # 프로젝트 설명
- prompt.md              # AI에 입력할 뉴스 정리 프롬프트
- md/
-     YYYY/
-         MM/
-             YYYYMMDD_dailynews.md   # 날짜별 뉴스 파일
+├─ README.md
+├─ prompt.md
+├─ app.js / index.html / style.css       # 대시보드(UI)
+├─ api/posts.liquid                       # 게시글 메타 생성
+├─ md/
+│  ├─ ai/YYYY-MM-DD.md
+│  ├─ tech/YYYY-MM-DD.md
+│  └─ economy/YYYY-MM-DD.md
+└─ scripts/
+   ├─ generate-daily-news.mjs            # LLM 생성
+   └─ validate-daily-news.mjs            # 품질 검증
 ```
 
-**예시**: `md/2026/02/20260224_dailynews.md`
+예시:
+- `md/ai/2026-03-03.md`
+- `md/tech/2026-03-03.md`
+- `md/economy/2026-03-03.md`
 
 ---
 
-## 사용 방법
+## 자동 생성 파이프라인 (GitHub Actions)
 
-1. `prompt.md` 파일을 열어 날짜(`{{YYYY년 MM월 DD일}}`)를 오늘 날짜로 교체
-2. 프롬프트 전체를 AI(ChatGPT, Claude 등)에 붙여넣기
-3. 생성된 결과를 `md/YYYY/MM/YYYYMMDD_dailynews.md` 경로에 저장
-
----
-
-## GitHub Actions 자동 생성 파이프라인
-
-이 레포는 `.github/workflows/daily-news-generate.yml` 워크플로로 일일 뉴스 생성이 가능합니다.
+워크플로: `.github/workflows/daily-news-generate.yml`
 
 ### 트리거
-- 매일 06:05 KST (`schedule`)
-- 수동 실행 (`workflow_dispatch`)
-- 외부 트리거 (`repository_dispatch`, type=`daily-news-generate`)
+- **스케줄**: 매일 06:05 KST
+- **수동 실행**: `workflow_dispatch`
+- **외부 트리거**: `repository_dispatch` (`event_type: daily-news-generate`)
 
-### 필요 설정
-Repository Settings에서 아래 값을 설정하세요.
+### 필요 설정 (Repository Settings → Secrets and variables → Actions)
 
-- **Secrets**
-  - `LLM_API_KEY` (필수)
-- **Variables (선택)**
+- **Secret (필수)**
+  - `LLM_API_KEY`
+
+- **Variable (선택)**
   - `LLM_MODEL` (기본: `gpt-4.1-mini`)
   - `LLM_BASE_URL` (기본: `https://api.openai.com/v1`)
 
-### 동작
-1. `scripts/generate-daily-news.mjs` 실행 (최대 3회 재시도)
-2. `scripts/validate-daily-news.mjs` 검증
-3. 변경분이 있으면 `md/` 아래 파일 commit/push
+### 동작 순서
+1. `scripts/generate-daily-news.mjs` 실행
+2. 실패 시 재시도(최대 3회)
+3. `scripts/validate-daily-news.mjs` 검증
+4. 변경이 있으면 `md/` 하위 파일 자동 commit/push
+
+---
+
+## 로컬 실행 (선택)
+
+```bash
+# 특정 날짜 생성
+TARGET_DATE=2026-03-03 LLM_API_KEY=... node scripts/generate-daily-news.mjs
+
+# 검증
+TARGET_DATE=2026-03-03 node scripts/validate-daily-news.mjs
+```
+
+---
+
+## 트러블슈팅
+
+### 1) Actions가 실패할 때
+- `LLM_API_KEY` 누락 여부 확인
+- OpenAI 429 (`insufficient_quota`) 발생 시 Billing/Quota 확인
+
+### 2) 생성은 됐는데 커밋이 안 될 때
+- 변경 파일이 없으면 커밋하지 않음(정상)
+
+### 3) 대시보드에 글이 안 보일 때
+- `md/*/*.md` 파일 경로/파일명 확인
+- GitHub Pages 반영 지연(캐시) 확인
+
+---
+
+## 참고
+
+- 메인 대시보드: `https://chenjae-kr.github.io/daily-news/`
+- 이 프로젝트는 생성 안정성을 위해 **OpenClaw cron(트리거) + GitHub Actions(실행)** 구조를 사용합니다.
