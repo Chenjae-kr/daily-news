@@ -20,6 +20,8 @@
 
     <!-- Marked.js for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- DOMPurify for sanitizing rendered markdown/html -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 </head>
 
 <body>
@@ -94,7 +96,7 @@
 
         <!-- Content Area -->
         <div id="content-header">
-            <h2 id="active-category">Daily News</h2>
+            <h2 id="active-category-desktop">Daily News</h2>
             <div class="header-actions">
                 <!-- Share Button (Moved from inside MD to Header for global access) -->
                 <button class="share-btn header-share-btn" onclick="shareCurrentPost()" aria-label="현재 링크 복사"

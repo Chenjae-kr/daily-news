@@ -6,7 +6,8 @@ const themeToggleDesktopBtn = document.getElementById('theme-toggle-desktop');
 const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('overlay');
-const activeCategoryDisplay = document.getElementById('active-category');
+const activeCategoryMobile = document.getElementById('active-category');
+const activeCategoryDesktop = document.getElementById('active-category-desktop');
 const searchInput = document.getElementById('search-input');
 const tocList = document.getElementById('toc-list');
 const tocSidebar = document.getElementById('toc-sidebar');
@@ -52,6 +53,13 @@ function configureMarked() {
         gfm: true,
         breaks: true
     });
+}
+
+function sanitizeHtml(html) {
+    if (window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+        return window.DOMPurify.sanitize(html);
+    }
+    return html;
 }
 
 // Fetch Posts Metadata
@@ -157,7 +165,7 @@ function renderDashboard() {
                 <span class="card-date">${post.date}</span>
             </div>
             <div class="card-title">${post.displayTitle} 주요 뉴스</div>
-            <div class="card-summary">${post.summary ? marked.parseInline(post.summary) : '내용이 없습니다.'}</div>
+            <div class="card-summary">${post.summary ? sanitizeHtml(marked.parseInline(post.summary)) : '내용이 없습니다.'}</div>
         `;
         dashboardCards.appendChild(card);
     });
@@ -184,7 +192,8 @@ function showDashboard() {
     if (dashboardView) dashboardView.style.display = 'block';
     if (tocSidebar) tocSidebar.classList.add('hidden-in-dashboard');
 
-    if (activeCategoryDisplay) activeCategoryDisplay.textContent = 'Daily News';
+    if (activeCategoryMobile) activeCategoryMobile.textContent = 'Daily News';
+    if (activeCategoryDesktop) activeCategoryDesktop.textContent = 'Daily News';
 }
 
 // Load and Render Markdown String
@@ -237,15 +246,16 @@ async function loadMarkdown(path) {
         `;
 
         // We wrap in a constrained max-width div similar to dashboard for reading experience
-        markdownContainer.innerHTML = `<div style="max-width: 800px; margin: 0 auto; padding: 24px 32px;">${metaHeader}${html}</div>`;
+        markdownContainer.innerHTML = `<div style="max-width: 800px; margin: 0 auto; padding: 24px 32px;">${metaHeader}${sanitizeHtml(html)}</div>`;
 
         // Generate TOC
         generateTOC();
 
         // Update active displays
         const postData = posts.find(p => p.path === path);
-        if (activeCategoryDisplay && postData) {
-            activeCategoryDisplay.textContent = postData.category + ' 주요 뉴스';
+        if (postData) {
+            if (activeCategoryMobile) activeCategoryMobile.textContent = postData.category + ' 주요 뉴스';
+            if (activeCategoryDesktop) activeCategoryDesktop.textContent = postData.category + ' 주요 뉴스';
         }
 
         // Hide Dashboard, Show Markdown, Show TOC Sidebar
@@ -267,7 +277,7 @@ async function loadMarkdown(path) {
 
     } catch (err) {
         console.error('Error loading markdown:', err);
-        markdownContainer.innerHTML = `< div style = "text-align:center;color:red;padding:40px;" > 문서를 불러오는 데 실패했습니다.</div > `;
+        markdownContainer.innerHTML = `<div style="text-align:center;color:red;padding:40px;">문서를 불러오는 데 실패했습니다.</div>`;
         hideLoader();
     }
 }
@@ -280,7 +290,7 @@ function buildCategoryFilters(categories) {
 
     // Add "All"
     const allChipContainer = document.createElement('li');
-    allChipContainer.innerHTML = `< a class="nav-item active" data - cat="all" > 모든 분야</a > `;
+    allChipContainer.innerHTML = `<a class="nav-item active" data-cat="all">모든 분야</a>`;
     allChipContainer.addEventListener('click', () => {
         currentActiveFilter = 'all';
         applyFilters();
@@ -293,7 +303,7 @@ function buildCategoryFilters(categories) {
     // Add rest of categories
     categories.forEach(cat => {
         const chipContainer = document.createElement('li');
-        chipContainer.innerHTML = `< a class="nav-item" data - cat="${cat}" > ${cat}</a > `;
+        chipContainer.innerHTML = `<a class="nav-item" data-cat="${cat}">${cat}</a>`;
 
         chipContainer.addEventListener('click', () => {
             currentActiveFilter = cat;
@@ -322,8 +332,8 @@ function generateTOC() {
         a.textContent = heading.textContent;
         // Ensure ID
         if (!heading.id) heading.id = 'heading-' + Math.random().toString(36).substr(2, 9);
-        a.href = `#${heading.id} `;
-        a.className = `toc - item toc - ${heading.tagName.toLowerCase()} `;
+        a.href = `#${heading.id}`;
+        a.className = `toc-item toc-${heading.tagName.toLowerCase()}`;
 
         a.addEventListener('click', (e) => {
             e.preventDefault();
@@ -360,7 +370,7 @@ function updateProgressBar() {
     }
     const progress = (mainContent.scrollTop / scrollHeight) * 100;
     if (progressBar) {
-        progressBar.style.width = `${progress}% `;
+        progressBar.style.width = `${progress}%`;
     }
 }
 
@@ -412,7 +422,7 @@ function renderCalendar() {
         div.className = 'cal-day';
         div.textContent = i;
 
-        const dateStr = `${year} -${String(month + 1).padStart(2, '0')} -${String(i).padStart(2, '0')} `;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
         const postForDate = posts.find(p => p.date === dateStr);
 
