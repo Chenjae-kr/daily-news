@@ -50,3 +50,28 @@ daily-news/
 1. `prompt.md` 파일을 열어 날짜(`{{YYYY년 MM월 DD일}}`)를 오늘 날짜로 교체
 2. 프롬프트 전체를 AI(ChatGPT, Claude 등)에 붙여넣기
 3. 생성된 결과를 `md/YYYY/MM/YYYYMMDD_dailynews.md` 경로에 저장
+
+---
+
+## GitHub Actions 자동 생성 파이프라인
+
+이 레포는 `.github/workflows/daily-news-generate.yml` 워크플로로 일일 뉴스 생성이 가능합니다.
+
+### 트리거
+- 매일 06:05 KST (`schedule`)
+- 수동 실행 (`workflow_dispatch`)
+- 외부 트리거 (`repository_dispatch`, type=`daily-news-generate`)
+
+### 필요 설정
+Repository Settings에서 아래 값을 설정하세요.
+
+- **Secrets**
+  - `LLM_API_KEY` (필수)
+- **Variables (선택)**
+  - `LLM_MODEL` (기본: `gpt-4.1-mini`)
+  - `LLM_BASE_URL` (기본: `https://api.openai.com/v1`)
+
+### 동작
+1. `scripts/generate-daily-news.mjs` 실행 (최대 3회 재시도)
+2. `scripts/validate-daily-news.mjs` 검증
+3. 변경분이 있으면 `md/` 아래 파일 commit/push

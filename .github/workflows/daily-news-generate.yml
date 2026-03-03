@@ -1,0 +1,78 @@
+name: Daily News Generate
+
+on:
+  schedule:
+    - cron: '5 21 * * *' # 06:05 KST
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'YYYY-MM-DD (KST)'
+        required: false
+  repository_dispatch:
+    types: [daily-news-generate]
+
+concurrency:
+  group: daily-news-generate
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Resolve target date
+        id: target
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            echo "target_date=${{ github.event.inputs.target_date }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ github.event.client_payload.target_date }}" ]; then
+            echo "target_date=${{ github.event.client_payload.target_date }}" >> $GITHUB_OUTPUT
+          else
+            echo "target_date=$(TZ=Asia/Seoul date +%F)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate (retry up to 3)
+        env:
+          TARGET_DATE: ${{ steps.target.outputs.target_date }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+        run: |
+          set -e
+          for i in 1 2 3; do
+            echo "[Attempt $i] generate daily news"
+            if node scripts/generate-daily-news.mjs; then
+              exit 0
+            fi
+            sleep $((i*10))
+          done
+          echo "Generation failed after retries"
+          exit 1
+
+      - name: Validate
+        env:
+          TARGET_DATE: ${{ steps.target.outputs.target_date }}
+        run: node scripts/validate-daily-news.mjs
+
+      - name: Commit & Push
+        run: |
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add md/
+          git commit -m "Add daily news report for ${{ steps.target.outputs.target_date }}"
+          git push
